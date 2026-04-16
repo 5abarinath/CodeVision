@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const response = await chat(project_id, analysis_id, message);
+    const response = await chat(project_id, analysis_id, message, user.id);
 
     return NextResponse.json(response);
   } catch (error) {

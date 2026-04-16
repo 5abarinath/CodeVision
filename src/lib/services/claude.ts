@@ -1,12 +1,11 @@
 // ABOUTME: Claude AI integration service for analyzing code against requirements.
 // ABOUTME: Sends code files and requirement documents to Claude and parses the structured response.
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from '../anthropic-client';
+import type Anthropic from '@anthropic-ai/sdk';
 import { Finding, ArchitectureVisualization } from '../db';
 import { ParsedDocument } from './file-parser';
 import fs from 'fs';
 import path from 'path';
-
-const client = new Anthropic();
 
 export interface AnalysisInput {
   documents: ParsedDocument[];
@@ -21,7 +20,7 @@ export interface AnalysisOutput {
   raw_response: string;
 }
 
-export async function analyzeCodeAlignment(input: AnalysisInput): Promise<AnalysisOutput> {
+export async function analyzeCodeAlignment(input: AnalysisInput, userId: string): Promise<AnalysisOutput> {
   // Build the requirements context
   const requirementsContext = input.documents
     .filter(doc => doc.type !== 'image')
@@ -145,7 +144,8 @@ Please analyze how well this codebase implements the requirements specified in t
     { type: 'text', text: userMessage },
   ];
 
-  const response = await client.messages.create({
+  const client = createAnthropicClient({ userId, service: 'alignment' });
+  const response = await client.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     system: systemPrompt,

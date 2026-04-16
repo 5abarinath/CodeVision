@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run analysis
-    const result = await analyzeProject(project_id);
+    const result = await analyzeProject(project_id, { userId: user.id });
 
     if (!result.success) {
       return NextResponse.json(

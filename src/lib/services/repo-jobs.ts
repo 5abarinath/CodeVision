@@ -141,6 +141,7 @@ async function runJob(jobId: string): Promise<void> {
   });
 
   const result = await analyzeProject(current.project_id, {
+    userId: current.user_id,
     onProgress: (event) => {
       const stage = (event.stage || 'parsing') as RepoJobStage;
       if (jobs.get(jobId)?.cancelled) return;

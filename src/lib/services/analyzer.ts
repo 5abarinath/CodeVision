@@ -26,6 +26,7 @@ export interface AnalyzeProjectResult {
 export interface AnalyzeProjectOptions {
   onProgress?: (event: { stage: string; progress: number; message: string }) => void;
   shouldCancel?: () => boolean;
+  userId?: string;
 }
 
 interface CloneMetadataSignals {
@@ -102,6 +103,7 @@ export async function analyzeProject(
   projectId: string,
   options?: AnalyzeProjectOptions
 ): Promise<AnalyzeProjectResult> {
+  const userId = options?.userId ?? '';
   const emit = (stage: string, progress: number, message: string): void => {
     options?.onProgress?.({ stage, progress, message });
   };
@@ -298,6 +300,7 @@ export async function analyzeProject(
         code_files: codeFiles,
       }, project.id, {
         onProgress: (event) => emit(event.stage, event.progress, event.message),
+        userId,
       });
       fullAnalysisResult = fullAnalysis;
 
@@ -317,7 +320,7 @@ export async function analyzeProject(
         documents: parsedDocs,
         codeFiles,
         structuralContext,
-      });
+      }, userId);
       analysisOutput.founder_content = null;
       analysisOutput.raw_response = mergeDeterministicSignalsIntoRawResponse(
         analysisOutput.raw_response,

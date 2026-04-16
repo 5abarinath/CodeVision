@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient } from '../anthropic-client';
 import { z } from 'zod';
 import type { ArchitectureVisualization, DataFlowStep, Finding, FounderContent } from '../db';
 import { normalizeDiagramText, sanitizeDiagramText } from '../utils/text-quality';
@@ -6,7 +6,6 @@ import type { FileEntry } from './chunker-service';
 import type { ParsedDocument } from './file-parser';
 import type { ArchPattern, DependencyGraph, ParsedFile } from './parser-service';
 
-let anthropicClient: Anthropic | null = null;
 const MAX_INPUT_TOKENS_PER_PASS = 80000;
 const RESERVED_OUTPUT_TOKENS = 8000;
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
@@ -19,23 +18,6 @@ interface CacheRecord {
 }
 
 const memoryCache = new Map<string, CacheRecord>();
-
-function getAnthropicClient(): Anthropic {
-  if (typeof window !== 'undefined') {
-    throw new Error('Anthropic analysis client is only available on the server.');
-  }
-  if (anthropicClient) {
-    return anthropicClient;
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is required to run repository analysis.');
-  }
-
-  anthropicClient = new Anthropic({ apiKey });
-  return anthropicClient;
-}
 
 const PASS1ModuleSummarySchema = z.object({
   display_name: z.string().min(1),
@@ -218,6 +200,7 @@ export interface MultiPassProgressEvent {
 
 export interface RunFullAnalysisOptions {
   onProgress?: (event: MultiPassProgressEvent) => void;
+  userId?: string;
 }
 
 function normalizeToPosix(value: string): string {
@@ -810,6 +793,7 @@ function batchModulesForPass1(
 async function runPass1ModuleSummaries(
   repoData: RepoData,
   jobId: string,
+  userId: string
 ): Promise<PassResult<PASS1Output>> {
   const pass1Prompt = `You are analyzing a software repository to help non-technical stakeholders understand it.
 
@@ -847,7 +831,7 @@ For each module output an entry in module_summaries keyed by a short slug (lower
     patterns: repoData.patterns,
   };
 
-  const result = await runAnthropicPassWithSchema(PASS1OutputSchema, 1, pass1Prompt, context);
+  const result = await runAnthropicPassWithSchema(PASS1OutputSchema, 1, pass1Prompt, context, userId);
 
   return {
     pass_num: 1,
@@ -886,7 +870,8 @@ function batchModuleSummariesForPass2(
 
 async function runPass2Relationships(
   moduleSummaries: PASS1Output['module_summaries'],
-  moduleEdgeContext: ReturnType<typeof buildModuleEdgeContext>
+  moduleEdgeContext: ReturnType<typeof buildModuleEdgeContext>,
+  userId: string
 ): Promise<PassResult<PASS2Output>> {
   const pass2Prompt = `Given these module summaries and dependency relationships,
 describe how modules work together as a system. For each connection include:
@@ -927,7 +912,7 @@ Output format:
       dependencies: batchDependencies,
       batch_index: i + 1,
       total_batches: summaryBatches.length,
-    });
+    }, userId);
     allRelationships.push(...batchResult.parsed.relationships);
     rawParts.push(`Batch ${i + 1}\n${batchResult.raw_response}`);
   }
@@ -949,9 +934,10 @@ async function runAnthropicPassWithSchema<T>(
   schema: z.ZodSchema<T>,
   passNum: number,
   prompt: string,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
+  userId: string
 ): Promise<PassResult<T>> {
-  const client = getAnthropicClient();
+  const client = createAnthropicClient({ userId, service: 'analysis' });
   const budgetedContext = buildBudgetedContext(context, prompt);
   const userPrompt = `${prompt}
 
@@ -960,7 +946,7 @@ Return strict JSON only.
 Context:
 ${JSON.stringify(budgetedContext)}`;
 
-  const response = await withRateLimitRetry(() => client.messages.create({
+  const response = await withRateLimitRetry(() => client.create({
     model: 'claude-sonnet-4-20250514',
     temperature: 0,
     max_tokens: RESERVED_OUTPUT_TOKENS,
@@ -991,7 +977,7 @@ Return corrected JSON only.
 Original response:
 ${rawText}
 `;
-    const repairResponse = await withRateLimitRetry(() => client.messages.create({
+    const repairResponse = await withRateLimitRetry(() => client.create({
       model: 'claude-sonnet-4-20250514',
       temperature: 0,
       max_tokens: RESERVED_OUTPUT_TOKENS,
@@ -1016,9 +1002,10 @@ ${rawText}
 export async function runPass(
   passNum: number,
   context: Record<string, unknown>,
-  prompt: string
+  prompt: string,
+  userId: string = ''
 ): Promise<PassResult<unknown>> {
-  return runAnthropicPassWithSchema(z.unknown(), passNum, prompt, context);
+  return runAnthropicPassWithSchema(z.unknown(), passNum, prompt, context, userId);
 }
 
 export async function runFullAnalysis(
@@ -1039,11 +1026,12 @@ export async function runFullAnalysis(
     return cached;
   }
 
+  const userId = options?.userId ?? '';
   const requirementsContext = buildRequirementsContext(mutableRepoData.documents);
   const readmeContent = findReadmeContent(mutableRepoData.code_files);
 
   emit({ stage: 'pass_1', progress: 50, message: 'Summarizing modules...' });
-  const pass1 = await runPass1ModuleSummaries(mutableRepoData, jobId);
+  const pass1 = await runPass1ModuleSummaries(mutableRepoData, jobId, userId);
 
   // Rebuild module_groups from Claude's business groupings
   const fileEntryMap = new Map(mutableRepoData.manifest.map(f => [f.path, f]));
@@ -1061,7 +1049,7 @@ export async function runFullAnalysis(
   const moduleSummaries = pass1.parsed.module_summaries;
 
   emit({ stage: 'pass_2', progress: 65, message: 'Mapping relationships...' });
-  const pass2 = await runPass2Relationships(moduleSummaries, moduleEdgeContext);
+  const pass2 = await runPass2Relationships(moduleSummaries, moduleEdgeContext, userId);
 
   const pass3Prompt = `Based on the system's modules and relationships, provide:
 
@@ -1147,7 +1135,7 @@ Output format:
     module_summaries: moduleSummaries,
     relationships: pass2.parsed.relationships,
     readme: readmeContent,
-  });
+  }, userId);
 
   const pass4Prompt = `Create a comprehensive but accessible architecture overview.
 Include:
@@ -1195,7 +1183,7 @@ Output format:
       patterns: mutableRepoData.patterns,
     },
     requirements: requirementsContext,
-  });
+  }, userId);
 
   const pass5Prompt = `Create an executive analysis output for non-technical stakeholders.
 Use requirements, system analysis, and architecture narrative.
@@ -1223,7 +1211,7 @@ Output format:
     business_analysis: pass3.parsed,
     architecture_narrative: pass4.parsed,
     patterns: mutableRepoData.patterns,
-  });
+  }, userId);
 
   const architecture = buildDeterministicArchitecture(
     mutableRepoData,
@@ -1309,7 +1297,7 @@ Return JSON matching the exact schema specified.`;
     raw_response: JSON.stringify(emptyPass6),
   };
   try {
-    pass6 = await runAnthropicPassWithSchema(PASS6FounderContentSchema, 6, pass6Prompt, pass6Context);
+    pass6 = await runAnthropicPassWithSchema(PASS6FounderContentSchema, 6, pass6Prompt, pass6Context, userId);
   } catch (pass6Error) {
     console.warn(
       'Pass 6 (founder content) failed:',

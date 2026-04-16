@@ -38,6 +38,7 @@ export async function POST(
       access.value.project_id,
       access.value.analysis_id,
       parsed.data.question,
+      access.value.user_id,
       parsed.data.elementContext,
       parsed.data.founderMode === true
     );

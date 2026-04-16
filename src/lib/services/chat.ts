@@ -1,4 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+// ABOUTME: Chat service that handles multi-turn conversations grounded in project analysis data.
+// ABOUTME: Builds context from analysis results and element data, then streams responses via the tracked Anthropic client.
+import { createAnthropicClient } from '../anthropic-client';
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
@@ -8,8 +10,6 @@ import { ChatMessage, ArchitectureVisualization, Finding } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { getProjectRepoPath, downloadRepository, cloneRepository } from './github';
 import { buildStarterQuestions } from './tech-risk-engine';
-
-const anthropic = new Anthropic();
 
 export interface ElementContext {
   component?: string;
@@ -177,6 +177,7 @@ export async function chat(
   projectId: string,
   analysisId: string,
   message: string,
+  userId: string,
   elementContext?: ElementContext,
   founderMode: boolean = false
 ): Promise<ChatResponse> {
@@ -281,7 +282,8 @@ ${responseType === 'quick' ? '\nPrioritize concise directness.' : '\nPrioritize 
     { role: 'user', content: message },
   ];
 
-  const response = await anthropic.messages.create({
+  const anthropicClient = createAnthropicClient({ userId, service: 'chat' });
+  const response = await anthropicClient.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: responseType === 'quick' ? 700 : 1200,
     system: systemPrompt,
