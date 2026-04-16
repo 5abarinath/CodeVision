@@ -34,6 +34,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
+      window.dispatchEvent(new Event('auth-change'));
       router.push('/');
       router.refresh();
     } catch (err) {

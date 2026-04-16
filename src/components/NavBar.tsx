@@ -51,19 +51,17 @@ export default function NavBar() {
                   <span className="text-sm text-gray-300">
                     {user.first_name || user.email.split('@')[0]}
                   </span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    user.tier === 'pro'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                  }`}>
+                    {user.tier === 'pro' ? 'Pro' : 'Free'}
+                  </span>
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 glass rounded-xl border border-white/10 shadow-lg py-1 z-50">
-                    <div className="px-3 py-2">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        user.tier === 'pro'
-                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                      }`}>
-                        {user.tier === 'pro' ? 'Pro' : 'Free'}
-                      </span>
-                    </div>
+                  <div className="absolute right-0 mt-2 w-44 rounded-xl border border-white/10 shadow-xl py-1 z-50" style={{ background: 'rgba(15, 15, 20, 0.97)', backdropFilter: 'blur(12px)' }}>
                     <Link
                       href="/account"
                       className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
