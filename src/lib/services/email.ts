@@ -103,7 +103,7 @@ export async function sendWaitlistNotification(data: WaitlistData) {
       <p>${escapeHtml(data.reason)}</p>
       <hr />
       <p style="color: #666; font-size: 12px;">
-        Submitted at ${new Date().toLocaleString()}
+        Submitted at ${new Date().toISOString()}
       </p>
     `,
   });
@@ -152,7 +152,7 @@ export async function sendFeedbackNotification(data: FeedbackData) {
         ${data.console_logs.map(log => `
           <li style="margin: 5px 0; font-family: monospace; font-size: 12px;">
             <strong>[${escapeHtml(log.level)}]</strong> ${escapeHtml(log.message)}
-            <span style="color: #666; font-size: 11px;">(${new Date(log.timestamp).toLocaleTimeString()})</span>
+            <span style="color: #666; font-size: 11px;">(${new Date(log.timestamp).toISOString()})</span>
           </li>
         `).join('')}
       </ul>
@@ -190,7 +190,7 @@ ${escapeHtml(data.message)}
 
           <hr style="margin: 20px 0; border: none; border-top: 1px solid #E5E7EB;" />
           <p style="color: #666; font-size: 12px;">
-            Submitted at ${new Date().toLocaleString()}
+            Submitted at ${new Date().toISOString()}
           </p>
         </div>
       </div>
