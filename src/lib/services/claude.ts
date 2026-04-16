@@ -144,7 +144,8 @@ Please analyze how well this codebase implements the requirements specified in t
     { type: 'text', text: userMessage },
   ];
 
-  const client = createAnthropicClient({ userId, service: 'alignment' });
+  const actionId = crypto.randomUUID();
+  const client = createAnthropicClient({ userId, service: 'alignment', actionId });
   const response = await client.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,

@@ -8,14 +8,10 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import InitialsAvatar from '@/components/InitialsAvatar';
 
 interface UsageEvent {
-  id: string;
+  action_id: string | null;
   created_at: string;
   service: string;
-  model: string;
-  input_tokens: number;
-  output_tokens: number;
-  input_cost_usd: number;
-  output_cost_usd: number;
+  total_cost_usd: number;
 }
 
 interface UsageData {
@@ -265,24 +261,18 @@ function AccountContent() {
                             <tr className="text-gray-400 border-b border-white/10 text-left">
                               <th className="pb-2 pr-4 font-medium">Date</th>
                               <th className="pb-2 pr-4 font-medium">Service</th>
-                              <th className="pb-2 pr-4 font-medium">Model</th>
-                              <th className="pb-2 pr-4 font-medium text-right">Input</th>
-                              <th className="pb-2 pr-4 font-medium text-right">Output</th>
                               <th className="pb-2 font-medium text-right">Cost</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {usageData.events.map(event => (
-                              <tr key={event.id} className="border-b border-white/5 text-gray-300">
+                            {usageData.events.map((event, i) => (
+                              <tr key={event.action_id ?? i} className="border-b border-white/5 text-gray-300">
                                 <td className="py-2 pr-4 text-xs">
                                   {new Date(event.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}{' '}
                                   {new Date(event.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                 </td>
                                 <td className="py-2 pr-4 capitalize">{event.service}</td>
-                                <td className="py-2 pr-4 font-mono text-xs">{event.model}</td>
-                                <td className="py-2 pr-4 text-right">{event.input_tokens.toLocaleString()}</td>
-                                <td className="py-2 pr-4 text-right">{event.output_tokens.toLocaleString()}</td>
-                                <td className="py-2 text-right">${(event.input_cost_usd + event.output_cost_usd).toFixed(4)}</td>
+                                <td className="py-2 text-right">${event.total_cost_usd.toFixed(4)}</td>
                               </tr>
                             ))}
                           </tbody>

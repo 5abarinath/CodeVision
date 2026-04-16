@@ -793,7 +793,8 @@ function batchModulesForPass1(
 async function runPass1ModuleSummaries(
   repoData: RepoData,
   jobId: string,
-  userId: string
+  userId: string,
+  actionId?: string
 ): Promise<PassResult<PASS1Output>> {
   const pass1Prompt = `You are analyzing a software repository to help non-technical stakeholders understand it.
 
@@ -831,7 +832,7 @@ For each module output an entry in module_summaries keyed by a short slug (lower
     patterns: repoData.patterns,
   };
 
-  const result = await runAnthropicPassWithSchema(PASS1OutputSchema, 1, pass1Prompt, context, userId);
+  const result = await runAnthropicPassWithSchema(PASS1OutputSchema, 1, pass1Prompt, context, userId, actionId);
 
   return {
     pass_num: 1,
@@ -871,7 +872,8 @@ function batchModuleSummariesForPass2(
 async function runPass2Relationships(
   moduleSummaries: PASS1Output['module_summaries'],
   moduleEdgeContext: ReturnType<typeof buildModuleEdgeContext>,
-  userId: string
+  userId: string,
+  actionId?: string
 ): Promise<PassResult<PASS2Output>> {
   const pass2Prompt = `Given these module summaries and dependency relationships,
 describe how modules work together as a system. For each connection include:
@@ -912,7 +914,7 @@ Output format:
       dependencies: batchDependencies,
       batch_index: i + 1,
       total_batches: summaryBatches.length,
-    }, userId);
+    }, userId, actionId);
     allRelationships.push(...batchResult.parsed.relationships);
     rawParts.push(`Batch ${i + 1}\n${batchResult.raw_response}`);
   }
@@ -935,9 +937,10 @@ async function runAnthropicPassWithSchema<T>(
   passNum: number,
   prompt: string,
   context: Record<string, unknown>,
-  userId: string
+  userId: string,
+  actionId?: string,
 ): Promise<PassResult<T>> {
-  const client = createAnthropicClient({ userId, service: 'analysis' });
+  const client = createAnthropicClient({ userId, service: 'analysis', actionId });
   const budgetedContext = buildBudgetedContext(context, prompt);
   const userPrompt = `${prompt}
 
@@ -1005,7 +1008,8 @@ export async function runPass(
   prompt: string,
   userId: string = ''
 ): Promise<PassResult<unknown>> {
-  return runAnthropicPassWithSchema(z.unknown(), passNum, prompt, context, userId);
+  const actionId = crypto.randomUUID();
+  return runAnthropicPassWithSchema(z.unknown(), passNum, prompt, context, userId, actionId);
 }
 
 export async function runFullAnalysis(
@@ -1027,11 +1031,12 @@ export async function runFullAnalysis(
   }
 
   const userId = options?.userId ?? '';
+  const actionId = crypto.randomUUID();
   const requirementsContext = buildRequirementsContext(mutableRepoData.documents);
   const readmeContent = findReadmeContent(mutableRepoData.code_files);
 
   emit({ stage: 'pass_1', progress: 50, message: 'Summarizing modules...' });
-  const pass1 = await runPass1ModuleSummaries(mutableRepoData, jobId, userId);
+  const pass1 = await runPass1ModuleSummaries(mutableRepoData, jobId, userId, actionId);
 
   // Rebuild module_groups from Claude's business groupings
   const fileEntryMap = new Map(mutableRepoData.manifest.map(f => [f.path, f]));
@@ -1049,7 +1054,7 @@ export async function runFullAnalysis(
   const moduleSummaries = pass1.parsed.module_summaries;
 
   emit({ stage: 'pass_2', progress: 65, message: 'Mapping relationships...' });
-  const pass2 = await runPass2Relationships(moduleSummaries, moduleEdgeContext, userId);
+  const pass2 = await runPass2Relationships(moduleSummaries, moduleEdgeContext, userId, actionId);
 
   const pass3Prompt = `Based on the system's modules and relationships, provide:
 
@@ -1135,7 +1140,7 @@ Output format:
     module_summaries: moduleSummaries,
     relationships: pass2.parsed.relationships,
     readme: readmeContent,
-  }, userId);
+  }, userId, actionId);
 
   const pass4Prompt = `Create a comprehensive but accessible architecture overview.
 Include:
@@ -1183,7 +1188,7 @@ Output format:
       patterns: mutableRepoData.patterns,
     },
     requirements: requirementsContext,
-  }, userId);
+  }, userId, actionId);
 
   const pass5Prompt = `Create an executive analysis output for non-technical stakeholders.
 Use requirements, system analysis, and architecture narrative.
@@ -1211,7 +1216,7 @@ Output format:
     business_analysis: pass3.parsed,
     architecture_narrative: pass4.parsed,
     patterns: mutableRepoData.patterns,
-  }, userId);
+  }, userId, actionId);
 
   const architecture = buildDeterministicArchitecture(
     mutableRepoData,
@@ -1297,7 +1302,7 @@ Return JSON matching the exact schema specified.`;
     raw_response: JSON.stringify(emptyPass6),
   };
   try {
-    pass6 = await runAnthropicPassWithSchema(PASS6FounderContentSchema, 6, pass6Prompt, pass6Context, userId);
+    pass6 = await runAnthropicPassWithSchema(PASS6FounderContentSchema, 6, pass6Prompt, pass6Context, userId, actionId);
   } catch (pass6Error) {
     console.warn(
       'Pass 6 (founder content) failed:',

@@ -7,6 +7,45 @@ import { supabase } from '@/lib/db';
 interface UserCreditsRow { total_cost_usd: number }
 interface TierLimitsConfig { value: Record<string, number | null> }
 
+interface GroupedAction {
+  action_id: string | null;
+  created_at: string;
+  service: string;
+  total_cost_usd: number;
+}
+
+function groupEventsByAction(events: { id: string; created_at: string | null; service: string | null; action_id: string | null; input_cost_usd: number | null; output_cost_usd: number | null }[] | null): GroupedAction[] {
+  if (!events || events.length === 0) return [];
+
+  const groups = new Map<string, GroupedAction>();
+
+  for (const event of events) {
+    const key = event.action_id ?? event.id; // null action_id events each get their own row
+    const cost = (event.input_cost_usd as number) + (event.output_cost_usd as number);
+
+    if (groups.has(key)) {
+      const existing = groups.get(key)!;
+      existing.total_cost_usd += cost;
+      // Keep the earliest created_at for the group
+      if ((event.created_at as string) < existing.created_at) {
+        existing.created_at = event.created_at as string;
+      }
+    } else {
+      groups.set(key, {
+        action_id: event.action_id as string | null,
+        created_at: event.created_at as string,
+        service: event.service as string,
+        total_cost_usd: cost,
+      });
+    }
+  }
+
+  // Return sorted most-recent first
+  return Array.from(groups.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request);
   if (!user) {
@@ -31,7 +70,7 @@ export async function GET(request: NextRequest) {
     supabase.from('admin_config').select('value').eq('key', 'tier_limits').single(),
     supabase
       .from('llm_usage_events')
-      .select('id, created_at, service, model, input_tokens, output_tokens, input_cost_usd, output_cost_usd')
+      .select('id, created_at, service, action_id, input_cost_usd, output_cost_usd')
       .eq('user_id', user.id)
       .gte('created_at', periodStart.toISOString())
       .lt('created_at', periodEnd.toISOString())
@@ -63,6 +102,6 @@ export async function GET(request: NextRequest) {
     total_cost_usd,
     tier: user.tier,
     tier_limit_usd: tierLimits[user.tier] ?? null,
-    events: eventsResult.data ?? [],
+    events: groupEventsByAction(eventsResult.data),
   });
 }

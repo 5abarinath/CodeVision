@@ -282,7 +282,8 @@ ${responseType === 'quick' ? '\nPrioritize concise directness.' : '\nPrioritize 
     { role: 'user', content: message },
   ];
 
-  const anthropicClient = createAnthropicClient({ userId, service: 'chat' });
+  const actionId = crypto.randomUUID();
+  const anthropicClient = createAnthropicClient({ userId, service: 'chat', actionId });
   const response = await anthropicClient.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: responseType === 'quick' ? 700 : 1200,

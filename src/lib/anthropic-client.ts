@@ -10,6 +10,7 @@ import { supabase } from './db';
 export interface AnthropicClientOptions {
   userId: string;
   service: 'chat' | 'analysis' | 'alignment';
+  actionId?: string;
 }
 
 // Extend the standard params to accept optional metadata for usage logging
@@ -167,6 +168,7 @@ async function logUsage(
   inputCost: number,
   outputCost: number,
   totalCost: number,
+  actionId?: string,
   metadata?: Record<string, unknown>,
 ): Promise<void> {
   try {
@@ -178,6 +180,7 @@ async function logUsage(
       output_tokens: outputTokens,
       input_cost_usd: inputCost,
       output_cost_usd: outputCost,
+      action_id: actionId ?? null,
       metadata: metadata ?? null,
     });
 
@@ -201,7 +204,7 @@ async function logUsage(
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
 export function createAnthropicClient(options: AnthropicClientOptions): TrackedAnthropicMessages {
-  const { userId, service } = options;
+  const { userId, service, actionId } = options;
   const anthropic = new Anthropic();
 
   return {
@@ -235,7 +238,7 @@ export function createAnthropicClient(options: AnthropicClientOptions): TrackedA
         llmPricing,
       );
 
-      void logUsage(userId, service, model, inputTokens, outputTokens, inputCost, outputCost, totalCost, metadata);
+      void logUsage(userId, service, model, inputTokens, outputTokens, inputCost, outputCost, totalCost, actionId, metadata);
 
       return response;
     },
