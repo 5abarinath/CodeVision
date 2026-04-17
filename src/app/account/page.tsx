@@ -24,7 +24,7 @@ interface UsageData {
 function AccountContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, refetch } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'usage'>(
     searchParams.get('tab') === 'usage' ? 'usage' : 'profile'
@@ -86,6 +86,7 @@ function AccountContent() {
         body: JSON.stringify({ first_name: firstName.trim(), last_name: lastName.trim() || null }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to save'); }
+      await refetch();
       setProfileSuccess(true);
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : 'Failed to save');

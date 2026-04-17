@@ -26,12 +26,13 @@ export async function PUT(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('users')
-    .update({ first_name, last_name: last_name ?? null, updated_at: new Date().toISOString() })
+    .update({ first_name, last_name: last_name ?? null })
     .eq('id', user.id)
     .select('id, email, first_name, last_name, tier')
     .single();
 
   if (error) {
+    console.error('[profile route] Supabase update error:', error);
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 
