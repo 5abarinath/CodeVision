@@ -24,14 +24,7 @@ export async function POST(request: NextRequest) {
 
     const { token, password } = parsed.data;
 
-    let resetRecord: { id: string; userId: string } | null;
-    try {
-      resetRecord = await validateResetToken(token);
-    } catch (tokenError) {
-      console.error('Reset password — validateResetToken threw:', tokenError);
-      return NextResponse.json({ error: 'Failed to validate reset token' }, { status: 500 });
-    }
-
+    const resetRecord = await validateResetToken(token);
     if (!resetRecord) {
       return NextResponse.json(
         { error: 'Reset link is invalid or has expired' },
@@ -39,20 +32,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Reset password — token valid, userId:', resetRecord.userId);
-
-    try {
-      await updateUserPassword(resetRecord.userId, password);
-    } catch (updateError) {
-      console.error('Reset password — updateUserPassword failed:', updateError);
-      return NextResponse.json({ error: 'Failed to update password' }, { status: 500 });
-    }
-
+    await updateUserPassword(resetRecord.userId, password);
     await markTokenUsed(resetRecord.id);
 
     return NextResponse.json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Reset password — unexpected error:', error);
+    console.error('Reset password error:', error);
     return NextResponse.json(
       { error: 'Failed to reset password' },
       { status: 500 }

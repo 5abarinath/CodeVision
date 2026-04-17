@@ -60,10 +60,10 @@ export async function updateUserPassword(userId: string, newPassword: string): P
 
   const { error } = await supabase
     .from('users')
-    .update({ password_hash, updated_at: new Date().toISOString() })
+    .update({ password_hash })
     .eq('id', userId);
 
   if (error) {
-    throw new Error(`Failed to update password: ${error.message} (code: ${error.code})`);
+    throw new Error('Failed to update password');
   }
 }
