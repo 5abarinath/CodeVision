@@ -10,6 +10,7 @@ export default function GitHubConnectionStep() {
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState('');
   const [validationSuccess, setValidationSuccess] = useState(false);
+  const [showPatGuide, setShowPatGuide] = useState(false);
 
   // Reset validation when public/private toggle changes or URL changes
   useEffect(() => {
@@ -147,10 +148,45 @@ export default function GitHubConnectionStep() {
                 setValidationSuccess(false);
               }}
             />
-            <p className="mt-2 text-xs text-gray-500">
-              Create a token at GitHub Settings → Developer Settings → Personal Access Tokens.
-              Needs repo read access.
-            </p>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowPatGuide(prev => !prev)}
+                aria-expanded={showPatGuide}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors cursor-pointer"
+              >
+                <span aria-hidden="true" className="flex items-center justify-center w-4 h-4 rounded-full border border-gray-500 text-xs">?</span>
+                <span>How do I create a personal access token?</span>
+                <svg
+                  className={`w-3 h-3 transition-transform duration-200 ${showPatGuide ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showPatGuide && (
+                <div className="mt-2 p-4 bg-gray-800/40 rounded-lg">
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-gray-400">
+                    <li>Go to GitHub.com → click your profile photo → <span className="text-gray-300">Settings</span></li>
+                    <li>Scroll to <span className="text-gray-300">Developer settings</span> (bottom of left sidebar)</li>
+                    <li>Select <span className="text-gray-300">Personal access tokens → Tokens (classic)</span></li>
+                    <li>Click <span className="text-gray-300">Generate new token (classic)</span></li>
+                    <li>Select the <span className="text-gray-300">repo scope</span> → click <span className="text-gray-300">Generate token</span> → copy it</li>
+                  </ol>
+                  <a
+                    href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    Full guide on GitHub docs ↗
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
