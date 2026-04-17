@@ -64,6 +64,6 @@ export async function updateUserPassword(userId: string, newPassword: string): P
     .eq('id', userId);
 
   if (error) {
-    throw new Error('Failed to update password');
+    throw new Error(`Failed to update password: ${error.message} (code: ${error.code})`);
   }
 }
