@@ -103,14 +103,10 @@ describe('GET /api/account/usage', () => {
     const body = await response.json();
     expect(body.events).toHaveLength(1);
     const event = body.events[0];
-    expect(event).toHaveProperty('id');
+    // Events are grouped by action_id — the shape is GroupedAction, not raw DB rows
     expect(event).toHaveProperty('created_at');
     expect(event).toHaveProperty('service');
-    expect(event).toHaveProperty('model');
-    expect(event).toHaveProperty('input_tokens');
-    expect(event).toHaveProperty('output_tokens');
-    expect(event).toHaveProperty('input_cost_usd');
-    expect(event).toHaveProperty('output_cost_usd');
+    expect(event).toHaveProperty('total_cost_usd');
   });
 
   it('returns 500 when llm_usage_events query fails', async () => {

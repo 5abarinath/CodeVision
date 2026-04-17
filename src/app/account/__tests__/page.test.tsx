@@ -31,7 +31,7 @@ describe('Account page', () => {
     vi.clearAllMocks();
     vi.mocked(useRouter).mockReturnValue({ push: mockPush, replace: mockReplace, back: mockBack } as ReturnType<typeof useRouter>);
     vi.mocked(useSearchParams).mockReturnValue({ get: () => null } as ReturnType<typeof useSearchParams>);
-    vi.mocked(useAuth).mockReturnValue({ user: freeUser, loading: false, logout: vi.fn() } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ user: freeUser, loading: false, logout: vi.fn(), refetch: vi.fn() } as ReturnType<typeof useAuth>);
   });
 
   it('shows Profile tab by default', async () => {

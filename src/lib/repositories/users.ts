@@ -54,3 +54,16 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
+
+export async function updateUserPassword(userId: string, newPassword: string): Promise<void> {
+  const password_hash = await bcrypt.hash(newPassword, 10);
+
+  const { error } = await supabase
+    .from('users')
+    .update({ password_hash, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+
+  if (error) {
+    throw new Error('Failed to update password');
+  }
+}

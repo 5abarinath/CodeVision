@@ -258,3 +258,53 @@ export async function sendOTPEmail(data: OTPData) {
 
   return { success: true };
 }
+
+interface PasswordResetData {
+  email: string;
+  token: string;
+}
+
+export async function sendPasswordResetEmail(data: PasswordResetData) {
+  const resend = getResendClient();
+  const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${data.token}`;
+
+  const { error } = await resend.emails.send({
+    from: 'Code Vision <onboarding@codevision.app>',
+    to: [data.email],
+    subject: 'Reset your Code Vision password',
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Reset Your Password</h1>
+        </div>
+
+        <div style="border: 1px solid #E5E7EB; border-top: none; padding: 40px; border-radius: 0 0 12px 12px; background: white;">
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            We received a request to reset your Code Vision password. Click the button below to choose a new password.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+              Reset Password
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #6B7280; margin-top: 20px;">
+            This link expires in <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email.
+          </p>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>Code Vision - Chrome DevTools for Understanding Code</p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('Failed to send password reset email:', error);
+    throw error;
+  }
+
+  return { success: true };
+}

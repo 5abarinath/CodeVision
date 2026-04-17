@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
+import { config } from 'dotenv';
+
+config({ path: '.env.local' });
 import { cleanup } from '@testing-library/react';
 
 afterEach(() => {

@@ -28,6 +28,7 @@ export interface User {
   last_name: string | null;
   tier: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface EmailVerification {
@@ -37,6 +38,15 @@ export interface EmailVerification {
   expires_at: string;
   created_at: string;
   used_at: string | null;
+}
+
+export interface PasswordReset {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  used_at: string | null;
+  created_at: string;
 }
 
 export interface ChatMessage {
