@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Run analysis
     const result = await analyzeProject(project_id, {
+      userId: user.id,
       ref: parsed.data.ref_type && parsed.data.ref_value
         ? { refType: parsed.data.ref_type, refValue: parsed.data.ref_value }
         : undefined,

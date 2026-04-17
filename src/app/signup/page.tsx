@@ -1,3 +1,5 @@
+// ABOUTME: Signup page with email, password, and name collection for new user registration.
+// ABOUTME: Includes waitlist flow for non-allowed email domains and OTP verification redirect.
 'use client';
 
 import { useState } from 'react';
@@ -9,6 +11,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
@@ -30,10 +34,16 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      const payload = {
+        email,
+        password,
+        first_name: firstName.trim(),
+        last_name: lastName.trim() || undefined,
+      };
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -101,6 +111,33 @@ export default function SignupPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                First name
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className="input-dark w-full rounded-lg px-4 py-2 text-white"
+                placeholder="First name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Last name <span className="text-gray-500">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="input-dark w-full rounded-lg px-4 py-2 text-white"
+                placeholder="Last name (optional)"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Email

@@ -91,7 +91,7 @@ export async function sendWaitlistNotification(data: WaitlistData) {
   const resend = getResendClient();
 
   const { error } = await resend.emails.send({
-    from: 'Code Vision <onboarding@resend.dev>', // Resend test domain for development
+    from: 'Code Vision <onboarding@codevision.app>', // Resend test domain for development
     to: adminEmails,
     subject: `[Code Vision] New Waitlist Request from ${escapeHtml(data.name)}`,
     html: `
@@ -103,7 +103,7 @@ export async function sendWaitlistNotification(data: WaitlistData) {
       <p>${escapeHtml(data.reason)}</p>
       <hr />
       <p style="color: #666; font-size: 12px;">
-        Submitted at ${new Date().toLocaleString()}
+        Submitted at ${new Date().toISOString()}
       </p>
     `,
   });
@@ -152,7 +152,7 @@ export async function sendFeedbackNotification(data: FeedbackData) {
         ${data.console_logs.map(log => `
           <li style="margin: 5px 0; font-family: monospace; font-size: 12px;">
             <strong>[${escapeHtml(log.level)}]</strong> ${escapeHtml(log.message)}
-            <span style="color: #666; font-size: 11px;">(${new Date(log.timestamp).toLocaleTimeString()})</span>
+            <span style="color: #666; font-size: 11px;">(${new Date(log.timestamp).toISOString()})</span>
           </li>
         `).join('')}
       </ul>
@@ -165,7 +165,7 @@ export async function sendFeedbackNotification(data: FeedbackData) {
     : '';
 
   const { error } = await resend.emails.send({
-    from: 'Code Vision <onboarding@resend.dev>', // Resend test domain for development
+    from: 'Code Vision <onboarding@codevision.app>', // Resend test domain for development
     to: adminEmails,
     subject: `[Code Vision] ${categoryLabel} from ${escapeHtml(data.user_email)}`,
     html: `
@@ -190,7 +190,7 @@ ${escapeHtml(data.message)}
 
           <hr style="margin: 20px 0; border: none; border-top: 1px solid #E5E7EB;" />
           <p style="color: #666; font-size: 12px;">
-            Submitted at ${new Date().toLocaleString()}
+            Submitted at ${new Date().toISOString()}
           </p>
         </div>
       </div>
@@ -215,7 +215,7 @@ export async function sendOTPEmail(data: OTPData) {
   const resend = getResendClient();
 
   const { error } = await resend.emails.send({
-    from: 'Code Vision <onboarding@resend.dev>',
+    from: 'Code Vision <onboarding@codevision.app>',
     to: [data.email],
     subject: 'Verify your Code Vision email',
     html: `
@@ -245,7 +245,7 @@ export async function sendOTPEmail(data: OTPData) {
         </div>
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>Code Vision - Chrome DevTools for Understanding Code</p>
+          <p>Code Vision - Demystify your codebase</p>
         </div>
       </div>
     `,
@@ -253,6 +253,58 @@ export async function sendOTPEmail(data: OTPData) {
 
   if (error) {
     console.error('Failed to send OTP email:', error);
+    throw error;
+  }
+
+  return { success: true };
+}
+
+interface PasswordResetData {
+  email: string;
+  token: string;
+}
+
+export async function sendPasswordResetEmail(data: PasswordResetData) {
+  const resend = getResendClient();
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const resetUrl = `${baseUrl}/reset-password?token=${data.token}`;
+
+  const { error } = await resend.emails.send({
+    from: 'Code Vision <onboarding@codevision.app>',
+    to: [data.email],
+    subject: 'Reset your Code Vision password',
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Reset Your Password</h1>
+        </div>
+
+        <div style="border: 1px solid #E5E7EB; border-top: none; padding: 40px; border-radius: 0 0 12px 12px; background: white;">
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            We received a request to reset your Code Vision password. Click the button below to choose a new password.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+              Reset Password
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #6B7280; margin-top: 20px;">
+            This link expires in <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email.
+          </p>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>Code Vision - Demystify your codebase</p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('Failed to send password reset email:', error);
     throw error;
   }
 

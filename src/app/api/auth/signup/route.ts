@@ -1,3 +1,5 @@
+// ABOUTME: Handles new user registration: validates input, checks email allowlist, creates user, and sends OTP email.
+// ABOUTME: Returns 201 on success, 400/403 on validation/allowlist failure, and 500 on unexpected errors.
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail } from '@/lib/repositories/users';
 import { isAllowedEmail } from '@/lib/auth';
@@ -9,6 +11,8 @@ import { z } from 'zod';
 const SignupSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().optional(),
 });
 
 // Lazy initialization for Supabase client (using service role to bypass RLS)
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password } = parsed.data;
+    const { email, password, first_name, last_name } = parsed.data;
 
     // Check email domain - if not allowed, add to waitlist
     if (!isAllowedEmail(email)) {
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user (email_verified will default to false)
-    const user = await createUser({ email, password });
+    const user = await createUser({ email, password, first_name, last_name });
 
     // Generate OTP
     const { code, expiresInMinutes } = await createEmailVerification(user.id);

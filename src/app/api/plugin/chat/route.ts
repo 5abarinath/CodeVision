@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       project.id,
       analysisId,
       message,
+      user.id,
       elementContext as ElementContext | undefined
     );
 

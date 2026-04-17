@@ -132,7 +132,7 @@ function VerifyEmailContent() {
           </button>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400 mb-2">Didn&apos;t receive the code?</p>
+            <p className="text-sm text-gray-400 mb-2">Didn&apos;t receive the code? Check your spam folder.</p>
             <button
               type="button"
               onClick={handleResend}

@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 interface User {
   id: string;
   email: string;
+  first_name: string;
+  last_name: string | null;
+  tier: string;
 }
 
 interface AuthState {
@@ -50,7 +53,7 @@ export function useAuth() {
     };
   }, []);
 
-  // Refetch user data when window gains focus (handles login in same tab)
+  // Refetch user data when window gains focus (handles login via alt-tab)
   useEffect(() => {
     let lastFetch = 0;
     const handleFocus = () => {
@@ -61,8 +64,15 @@ export function useAuth() {
       }
     };
 
+    // Refetch when login completes in the same tab (no focus change occurs)
+    const handleAuthChange = () => void fetchUser();
+
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('auth-change', handleAuthChange);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
   }, [fetchUser]);
 
   const logout = useCallback(async () => {
