@@ -245,7 +245,7 @@ export async function sendOTPEmail(data: OTPData) {
         </div>
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>Code Vision - Chrome DevTools for Understanding Code</p>
+          <p>Code Vision - Demystify your codebase</p>
         </div>
       </div>
     `,
@@ -266,7 +266,9 @@ interface PasswordResetData {
 
 export async function sendPasswordResetEmail(data: PasswordResetData) {
   const resend = getResendClient();
-  const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${data.token}`;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const resetUrl = `${baseUrl}/reset-password?token=${data.token}`;
 
   const { error } = await resend.emails.send({
     from: 'Code Vision <onboarding@codevision.app>',
@@ -295,7 +297,7 @@ export async function sendPasswordResetEmail(data: PasswordResetData) {
         </div>
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>Code Vision - Chrome DevTools for Understanding Code</p>
+          <p>Code Vision - Demystify your codebase</p>
         </div>
       </div>
     `,
